@@ -6,6 +6,8 @@ import FindProductByIdService from "../../products/services/FindProductByIdServi
 
 import AppError from "../../../shared/errors/AppErrors";
 
+const {checkStok} = require("../validations/StokValidations");
+
 export default class CreateOrderService {
   public async execute(data: IOrderDTO): Promise<Order> {
     
@@ -18,13 +20,12 @@ export default class CreateOrderService {
 
     //verifica se ha estoque para os produtos listados
     for (const order of data.pedido_produtos){
-      const findProductByIdService = new FindProductByIdService();
-      const product = await findProductByIdService.execute(Number(order.produto_id));
-      console.log("Produto: "+ product);
-      console.log ("Quantidade pretendida "+ order.quantidade);
+      //retorna a quantidade em estoque do produto 
+      const quantidadeEstoque = await checkStok(Number(order.produto_id));
+      console.log("Quantidade: "+ quantidadeEstoque);
 
-      if (product.quantidade < order.quantidade){
-        throw new AppError("Quantidade insuficiente em estoque do produto: "+ product.nome+ ", "+product.quantidade+" unidades em estoque");
+      if (quantidadeEstoque < order.quantidade){
+        throw new AppError("Quantidade insuficiente em estoque do produto_id: "+ order.produto_id+ ", "+quantidadeEstoque+" unidades em estoque");
       }
     }
       
