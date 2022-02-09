@@ -1,21 +1,43 @@
 import IOrderDTO from "../dtos/IOrderDTO";
 import Order from "../infra/typeorm/entities/Order";
 import OrderRepository from "../infra/typeorm/repositories/OrderRepository";
+
 import FindProductByIdService from "../../products/services/FindProductByIdService";
+
 import AppError from "../../../shared/errors/AppErrors";
+
 export default class CreateOrderService {
   public async execute(data: IOrderDTO): Promise<Order> {
-  
+    
+    //faz o controle das quantidades do pedido
+    data.pedido_produtos.forEach(element => {
+      if (element.quantidade <= 0 || element.quantidade === null){
+        throw new AppError("Iligal quantity value ");
+      }
+    });
+
+    //verifica se ha estoque para os produtos listados
+    for (const order of data.pedido_produtos){
+      const findProductByIdService = new FindProductByIdService();
+      const product = await findProductByIdService.execute(Number(order.produto_id));
+      console.log("Produto: "+ product);
+      console.log ("Quantidade pretendida "+ order.quantidade);
+
+      if (product.quantidade < order.quantidade){
+        throw new AppError("Quantidade insuficiente em estoque do produto: "+ product.nome+ ", "+product.quantidade+" unidades em estoque");
+      }
+    }
+      
     const orderRepository = new OrderRepository();
     
     data.valor = await this.getTotalPrice(data);
-    
+      
     const order = await orderRepository.create(data);
 
     return order;
   }
 
-
+  //calcula o valor total do pedido
   private async getTotalPrice(data: IOrderDTO): Promise<number>{
     
     let values: number[]  = await Promise.all( data.pedido_produtos.map(async (produto): Promise<number> => {
@@ -35,7 +57,6 @@ export default class CreateOrderService {
     
     return valorTotal;
   }
-
 
 }
 
