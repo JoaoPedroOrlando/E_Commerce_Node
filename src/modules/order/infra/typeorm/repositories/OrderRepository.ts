@@ -15,7 +15,6 @@ export default class OrderRepository implements IOrderRepository {
     return this.ormRepository
     .createQueryBuilder("order")
     .leftJoinAndSelect("order.pedido_produtos", "pp")
-
     .leftJoinAndSelect("order.cliente","c")
     .where("order.cliente_id = :id", {id})
     .getMany();
